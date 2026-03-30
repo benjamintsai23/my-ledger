@@ -803,6 +803,24 @@ function editLoan(id){const l=loans.find(x=>x.id===id);if(!l)return;
   l.start=start.trim(); l.end=end.trim(); l.note=note.trim();
   saveLoans();refreshBalance();}
 function deleteLoan(id){if(!confirm('確定刪除？'))return;loans=loans.filter(l=>l.id!==id);saveLoans();refreshBalance();}
+function autoUpdateLoanPaid() {
+  const now=new Date();
+  loans.forEach(l=>{
+    if(l.monthly>0 && l.start){
+      const start=new Date(l.start);
+      const months=(now.getFullYear()-start.getFullYear())*12+(now.getMonth()-start.getMonth());
+      // 如果今天已過該月的還款日(以起始日的日期為準)，算完整月
+      const dayOfMonth=start.getDate();
+      const completedMonths=now.getDate()>=dayOfMonth ? months : months-1;
+      const autoPaid=Math.max(0, completedMonths)*l.monthly;
+      // 不超過貸款總額
+      l.paid=Math.min(autoPaid, l.total);
+    }
+  });
+  saveLoans();
+}
+autoUpdateLoanPaid();
+
 function refreshBalance() {
   const ta=assets.reduce((s,a)=>s+a.amount,0),tl=loans.reduce((s,l)=>s+(l.total-l.paid),0),nw=ta-tl,mp=loans.reduce((s,l)=>s+l.monthly,0);
   document.getElementById('networth-summary').innerHTML=`
@@ -826,12 +844,23 @@ function refreshBalance() {
     lh+=`<div style="font-size:14px;font-weight:700;margin:16px 0 8px;color:var(--gray-700);">${LOAN_TYPES[t]||t} — <span style="color:var(--red-dark);">剩餘 $${fmt(rem)}</span></div>`;
     items.forEach(l=>{const r=l.total-l.paid,pct=l.total>0?Math.round(l.paid/l.total*100):0;
       const bc=pct>=75?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+      // 計算期數資訊
+      let termInfo='';
+      if(l.monthly>0 && l.start){
+        const s=new Date(l.start), now=new Date();
+        const paidMonths=Math.round(l.paid/l.monthly);
+        const totalMonths=l.monthly>0?Math.ceil(l.total/l.monthly):0;
+        const remainMonths=totalMonths-paidMonths;
+        const remainYears=Math.floor(remainMonths/12), remainMo=remainMonths%12;
+        const estEnd=remainMonths>0?(remainYears>0?remainYears+'年':'')+(remainMo>0?remainMo+'個月':''):'已還完';
+        termInfo=` · 已繳 ${paidMonths} 期 / 共 ${totalMonths} 期 · 剩餘約 ${estEnd}`;
+      }
       lh+=`<div class="item-row" style="flex-direction:column;align-items:stretch;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <div class="row-name">${esc(l.name)}</div><div class="row-amount" style="color:var(--red-dark);">剩餘 $${fmt(r)}</div></div>
-        <div class="row-detail" style="margin:4px 0;">總額 $${fmt(l.total)} · 已還 $${fmt(l.paid)}${l.rate?' · 利率 '+l.rate+'%':''}${l.monthly?' · 月付 $'+fmt(l.monthly):''}${l.start?' · '+l.start:''}${l.end?' ~ '+l.end:''}${l.note?' · '+esc(l.note):''}</div>
+        <div class="row-detail" style="margin:4px 0;">總額 $${fmt(l.total)} · 已還 $${fmt(l.paid)}${l.rate?' · 利率 '+l.rate+'%':''}${l.monthly?' · 月付 $'+fmt(l.monthly):''}${termInfo}${l.start?' · '+l.start:''}${l.end?' ~ '+l.end:''}${l.note?' · '+esc(l.note):''}</div>
         <div class="progress-lg"><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${bc};">${pct}%</div></div></div>
-        <div class="row-actions" style="margin-top:8px;"><button class="btn btn-edit" onclick="updateLoanPaid(${l.id})">更新已還</button><button class="btn btn-edit" onclick="editLoan(${l.id})">編輯</button><button class="btn btn-danger" onclick="deleteLoan(${l.id})">刪除</button></div></div>`;});}
+        <div class="row-actions" style="margin-top:8px;"><button class="btn btn-edit" onclick="editLoan(${l.id})">編輯</button><button class="btn btn-danger" onclick="deleteLoan(${l.id})">刪除</button></div></div>`;});}
   document.getElementById('loans-list').innerHTML=lh||'<div class="empty-state"><span class="empty-icon">📋</span><span class="empty-text">還沒有貸款紀錄</span></div>';
 }
 
