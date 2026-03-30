@@ -4,4 +4,6 @@
   {"id":1743303600003,"type":"expense","date":"2026-03-20","category":"food","amount":95,"note":"晚餐"},
   {"id":1743310800001,"type":"expense","date":"2026-03-20","category":"food","amount":90,"note":"晚餐"},
   {"id":1743310800002,"type":"expense","date":"2026-03-30","category":"food","amount":59,"note":"7-11"}
+],"assets":[
+  {"id":1743321600001,"name":"中國人壽鑫美傳富（美元儲蓄險）","type":"other","amount":110577,"note":"解約金 $3,474 USD，利率 3.35%，保單號 D1779159，下期繳費 2026/05/10","updatedAt":"2026-03-30"}
 ]}

@@ -608,22 +608,40 @@ async function fetchPending(){
     const resp=await fetch('https://benjamintsai23.github.io/my-ledger/pending.json?t='+Date.now());
     if(!resp.ok)return;
     const data=await resp.json();
-    if(!data.records||!data.records.length)return;
-    // Check which records are new (not already imported)
     const imported=JSON.parse(localStorage.getItem('my-ledger-imported')||'[]');
-    const newRecs=data.records.filter(r=>!imported.includes(r.id));
-    if(!newRecs.length)return;
-    // Add to records
-    newRecs.forEach(r=>records.push(r));
-    save();
-    // Mark as imported
-    const allImported=[...imported,...newRecs.map(r=>r.id)];
-    localStorage.setItem('my-ledger-imported',JSON.stringify(allImported));
-    // Notify
+    let importCount=0;
+    // Import records
+    if(data.records&&data.records.length){
+      const newRecs=data.records.filter(r=>!imported.includes(r.id));
+      if(newRecs.length){
+        newRecs.forEach(r=>records.push(r));
+        save();
+        imported.push(...newRecs.map(r=>r.id));
+        importCount+=newRecs.length;
+      }
+    }
+    // Import assets
+    if(data.assets&&data.assets.length){
+      const newAssets=data.assets.filter(a=>!imported.includes(a.id));
+      if(newAssets.length){
+        newAssets.forEach(a=>{
+          // Check if asset with same name exists, update it
+          const idx=assets.findIndex(x=>x.name===a.name);
+          if(idx>=0){assets[idx].amount=a.amount;assets[idx].note=a.note||assets[idx].note;assets[idx].updatedAt=a.updatedAt||new Date().toISOString().slice(0,10);}
+          else{assets.push(a);}
+        });
+        saveAssets();
+        imported.push(...newAssets.map(a=>a.id));
+        importCount+=newAssets.length;
+      }
+    }
+    if(!importCount)return;
+    localStorage.setItem('my-ledger-imported',JSON.stringify(imported));
     refreshTodayView();
+    if(typeof refreshBalance==='function')refreshBalance();
     const badge=document.createElement('div');
     badge.style.cssText='position:fixed;top:70px;right:16px;background:var(--green);color:white;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s;';
-    badge.textContent=`已自動匯入 ${newRecs.length} 筆紀錄`;
+    badge.textContent=`已自動匯入 ${importCount} 筆資料`;
     document.body.appendChild(badge);
     setTimeout(()=>badge.remove(),4000);
   }catch(e){}
