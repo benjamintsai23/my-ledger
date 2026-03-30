@@ -337,9 +337,53 @@ tr:hover { background: var(--gray-50); }
 @media (min-width: 769px) {
   .trades-cards-mobile { display: none !important; }
 }
+/* Lock screen */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg, var(--gray-900) 0%, #1e1b4b 50%, var(--gray-900) 100%);
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+}
+.lock-box {
+  background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 40px 36px; text-align: center; max-width: 340px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.lock-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+.lock-title { font-size: 22px; font-weight: 800; color: white; margin-bottom: 6px; letter-spacing: -0.5px; }
+.lock-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 24px; }
+.lock-input {
+  width: 100%; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+  background: rgba(255,255,255,0.08); color: white; font-size: 18px; font-family: inherit;
+  text-align: center; letter-spacing: 8px; outline: none; transition: border-color 0.3s;
+}
+.lock-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+.lock-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 2px; font-size: 14px; }
+.lock-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 12px; margin-top: 16px;
+  background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); color: white;
+  font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.lock-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+.lock-btn:active { transform: scale(0.98); }
+.lock-error { color: #f87171; font-size: 12px; margin-top: 12px; min-height: 18px; font-weight: 500; }
+.lock-screen.unlocked { animation: fadeOut 0.4s ease forwards; pointer-events: none; }
+@keyframes fadeOut { to { opacity: 0; } }
 </style>
 </head>
 <body>
+
+<!-- Lock Screen -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-box">
+    <span class="lock-icon">&#128274;</span>
+    <div class="lock-title">My Ledger</div>
+    <div class="lock-subtitle">請輸入密碼以繼續</div>
+    <input type="password" class="lock-input" id="lock-pwd" placeholder="密碼" autofocus
+      onkeydown="if(event.key==='Enter')unlock()">
+    <button class="lock-btn" onclick="unlock()">解鎖</button>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
@@ -638,6 +682,31 @@ tr:hover { background: var(--gray-50); }
 </div>
 
 <script>
+// ===== Lock Screen =====
+const LOCK_HASH = '4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce'; // sha256 of password
+async function hashPwd(pwd) {
+  const enc = new TextEncoder().encode(pwd);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function unlock() {
+  const pwd = document.getElementById('lock-pwd').value;
+  const hash = await hashPwd(pwd);
+  if (hash === LOCK_HASH) {
+    document.getElementById('lock-screen').classList.add('unlocked');
+    setTimeout(() => document.getElementById('lock-screen').style.display = 'none', 400);
+    sessionStorage.setItem('my-ledger-unlocked', '1');
+  } else {
+    document.getElementById('lock-error').textContent = '密碼錯誤，請重試';
+    document.getElementById('lock-pwd').value = '';
+    document.getElementById('lock-pwd').focus();
+  }
+}
+// Auto-unlock if already unlocked this session
+if (sessionStorage.getItem('my-ledger-unlocked') === '1') {
+  document.getElementById('lock-screen').style.display = 'none';
+}
+
 // ===== Categories =====
 const INCOME_CATS = [
   { key:'salary', name:'薪水', badge:'badge-green' },
