@@ -503,9 +503,10 @@ tr:hover { background: var(--gray-50); }
 
     <div class="content-card">
       <h3>AI 財務分析</h3>
-      <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">匯出財務資料，傳到 Telegram 讓 AI 幫你分析資產配置、風險與趨勢</p>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">匯出財務摘要，貼到 Telegram 讓 AI 幫你分析資產配置、風險與趨勢</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="exportSnapshot()">匯出財務快照</button>
+        <button class="btn btn-primary" onclick="copySnapshot()">複製財務摘要</button>
+        <button class="btn btn-outline" onclick="exportSnapshot()">下載完整快照</button>
       </div>
       <div id="sync-status" style="margin-top:10px;font-size:12px;color:var(--gray-500);"></div>
     </div>
@@ -1220,28 +1221,131 @@ function exportMonthly(){
 function csvE(s){s=s||'';return s.includes(',')||s.includes('"')?'"'+s.replace(/"/g,'""')+'"':s;}
 function dl(c,f,t){const b=new Blob([c],{type:t+';charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f;a.click();}
 
-// ===== AI Financial Snapshot Export =====
+// ===== AI Financial Snapshot =====
+function buildSnapshot(){
+  const USD_TWD=32;
+  return {
+    syncTime:new Date().toISOString(),
+    records:records,
+    assets:assets,
+    stocks:stocks.map(s=>({symbol:s.symbol,shares:s.shares,cost:s.cost,price:s.price,lastUpdate:s.lastUpdate})),
+    funds:JSON.parse(localStorage.getItem('my-ledger-funds')||'[]'),
+    loans:loans,
+    budgets:budgets,
+    recurring:recurring,
+    summary:{
+      totalAssetsTWD:assets.reduce((s,a)=>s+a.amount,0)+getStocksTotalNTD()+getFundsTotalNTD(),
+      totalLiabilities:loans.reduce((s,l)=>s+(l.total-l.paid),0),
+      stocksTotalUSD:getStocksTotalUSD(),
+      stocksTotalCostUSD:getStocksTotalCostUSD(),
+      usdRate:USD_TWD
+    }
+  };
+}
+
+function buildSummaryText(){
+  const s=buildSnapshot();
+  const now=new Date().toLocaleString('zh-TW');
+  let t=`📊 財務快照 (${now})\n\n`;
+
+  // Assets summary
+  t+=`💰 資產總覽\n`;
+  t+=`總資產: $${fmt(s.summary.totalAssetsTWD)}\n`;
+  t+=`總負債: $${fmt(s.summary.totalLiabilities)}\n`;
+  t+=`淨資產: $${fmt(s.summary.totalAssetsTWD-s.summary.totalLiabilities)}\n\n`;
+
+  // Assets detail
+  if(s.assets.length){
+    t+=`🏦 資產明細\n`;
+    s.assets.forEach(a=>t+=`• ${a.name}: $${fmt(a.amount)}\n`);
+    t+='\n';
+  }
+
+  // Stocks
+  if(s.stocks.length){
+    t+=`📈 美股持倉\n`;
+    s.stocks.forEach(st=>{
+      const val=st.price*st.shares;
+      const pnl=st.cost?(val-st.cost*st.shares):0;
+      t+=`• ${st.symbol} ${st.shares}股 現價$${st.price||'--'} 市值$${Math.round(val)} 損益${pnl>=0?'+':''}$${Math.round(pnl)}\n`;
+    });
+    t+=`美股總市值: $${fmt(Math.round(s.summary.stocksTotalUSD))} USD\n\n`;
+  }
+
+  // Funds
+  if(s.funds.length){
+    t+=`📊 基金\n`;
+    s.funds.forEach(f=>t+=`• ${f.name}: ${f.units}單位 淨值${f.nav}\n`);
+    t+='\n';
+  }
+
+  // Loans
+  if(s.loans.length){
+    t+=`💳 貸款\n`;
+    s.loans.forEach(l=>t+=`• ${l.name}: 剩餘$${fmt(l.total-l.paid)} 月付$${fmt(l.monthly)}\n`);
+    t+='\n';
+  }
+
+  // Recent monthly spending (last 3 months)
+  const months=[];
+  const today=new Date();
+  for(let i=0;i<3;i++){
+    const d=new Date(today.getFullYear(),today.getMonth()-i,1);
+    const ym=d.toISOString().slice(0,7);
+    const mr=s.records.filter(r=>r.date&&r.date.startsWith(ym));
+    const inc=mr.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const exp=mr.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    if(inc||exp) months.push({ym,inc,exp});
+  }
+  if(months.length){
+    t+=`📅 近期收支\n`;
+    months.forEach(m=>t+=`• ${m.ym}: 收入$${fmt(m.inc)} 支出$${fmt(m.exp)} 淨額${m.inc-m.exp>=0?'+':''}$${fmt(m.inc-m.exp)}\n`);
+    t+='\n';
+  }
+
+  // Expense categories this month
+  const thisMonth=today.toISOString().slice(0,7);
+  const thisMonthExp=s.records.filter(r=>r.date&&r.date.startsWith(thisMonth)&&r.type==='expense');
+  if(thisMonthExp.length){
+    const cats={};
+    thisMonthExp.forEach(r=>{const k=r.category||'other';cats[k]=(cats[k]||0)+r.amount;});
+    t+=`📊 本月支出分布\n`;
+    Object.entries(cats).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+      const cn=CAT_MAP[k]?CAT_MAP[k].name:k;
+      t+=`• ${cn}: $${fmt(v)}\n`;
+    });
+    t+='\n';
+  }
+
+  t+=`請幫我分析資產配置比例、風險建議、趨勢`;
+  return t;
+}
+
+async function copySnapshot(){
+  const status=document.getElementById('sync-status');
+  try{
+    const text=buildSummaryText();
+    await navigator.clipboard.writeText(text);
+    status.textContent='✅ 已複製！到 Telegram 貼上傳送給 AI 即可分析';
+    status.style.color='var(--green-dark)';
+  }catch(e){
+    // Fallback for iOS
+    const ta=document.createElement('textarea');
+    ta.value=buildSummaryText();
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    status.textContent='✅ 已複製！到 Telegram 貼上傳送給 AI 即可分析';
+    status.style.color='var(--green-dark)';
+  }
+}
+
 function exportSnapshot(){
   const status=document.getElementById('sync-status');
   try{
-    const USD_TWD=32;
-    const snapshot={
-      syncTime:new Date().toISOString(),
-      records:records,
-      assets:assets,
-      stocks:stocks.map(s=>({symbol:s.symbol,shares:s.shares,cost:s.cost,price:s.price,lastUpdate:s.lastUpdate})),
-      funds:JSON.parse(localStorage.getItem('my-ledger-funds')||'[]'),
-      loans:loans,
-      budgets:budgets,
-      recurring:recurring,
-      summary:{
-        totalAssetsTWD:assets.reduce((s,a)=>s+a.amount,0)+getStocksTotalNTD()+getFundsTotalNTD(),
-        totalLiabilities:loans.reduce((s,l)=>s+(l.total-l.paid),0),
-        stocksTotalUSD:getStocksTotalUSD(),
-        stocksTotalCostUSD:getStocksTotalCostUSD(),
-        usdRate:USD_TWD
-      }
-    };
+    const snapshot=buildSnapshot();
     dl(JSON.stringify(snapshot,null,2),'ledger-snapshot.json','application/json');
     status.textContent='✅ 已下載！把檔案傳到 Telegram 給 AI，說「分析財務」即可';
     status.style.color='var(--green-dark)';
