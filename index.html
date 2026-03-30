@@ -1093,15 +1093,49 @@ function showChart() {
   renderBars(ec,BAR_COLORS,'expense-bars'); renderBars(ic,BAR_COLORS_IN,'income-bars');
   // Year compare
   if(yr2){const d2=getYearData(+yr2).monthly;
-    let ch=`<div class="content-card" style="margin-top:16px;"><h3>${yr} vs ${yr2} 年度比較</h3><div class="table-wrap"><table class="report-table"><tr><th>月</th><th>${yr} 收</th><th>${yr2} 收</th><th>${yr} 支</th><th>${yr2} 支</th><th>收入差</th><th>支出差</th></tr>`;
-    for(let i=0;i<12;i++){const a=md[i],b=d2[i],id=a.inc-b.inc,ed=a.exp-b.exp;
-      ch+=`<tr><td>${i+1}月</td><td>$${fmt(a.inc)}</td><td>$${fmt(b.inc)}</td><td>$${fmt(a.exp)}</td><td>$${fmt(b.exp)}</td>
-        <td class="${id>=0?'text-green':'text-red'}">${id>=0?'+':''}$${fmt(id)}</td>
-        <td class="${ed<=0?'text-green':'text-red'}">${ed>=0?'+':''}$${fmt(ed)}</td></tr>`;}
     const ti1=md.reduce((s,d)=>s+d.inc,0),ti2=d2.reduce((s,d)=>s+d.inc,0),te1=md.reduce((s,d)=>s+d.exp,0),te2=d2.reduce((s,d)=>s+d.exp,0);
-    ch+=`<tr style="font-weight:700;"><td>合計</td><td>$${fmt(ti1)}</td><td>$${fmt(ti2)}</td><td>$${fmt(te1)}</td><td>$${fmt(te2)}</td>
-      <td class="${ti1-ti2>=0?'text-green':'text-red'}">${ti1-ti2>=0?'+':''}$${fmt(ti1-ti2)}</td>
-      <td class="${te1-te2<=0?'text-green':'text-red'}">${te1-te2>=0?'+':''}$${fmt(te1-te2)}</td></tr></table></div></div>`;
+    // Card-based comparison (mobile-friendly)
+    let cards='';
+    for(let i=0;i<12;i++){
+      const a=md[i],b=d2[i];
+      if(a.inc===0&&a.exp===0&&b.inc===0&&b.exp===0) continue; // skip empty months
+      const id=a.inc-b.inc,ed=a.exp-b.exp;
+      cards+=`<div style="background:var(--gray-50);border-radius:10px;padding:14px 16px;border:1px solid var(--gray-100);">
+        <div style="font-weight:700;font-size:14px;color:var(--gray-800);margin-bottom:10px;">${i+1}月</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:white;border-radius:8px;padding:8px 10px;border:1px solid var(--gray-100);">
+            <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase;">收入</div>
+            <div style="font-size:13px;font-weight:700;color:var(--gray-800);margin-top:2px;">${yr}: $${fmt(a.inc)}</div>
+            <div style="font-size:13px;color:var(--gray-500);">${yr2}: $${fmt(b.inc)}</div>
+            <div style="font-size:11px;font-weight:600;color:${id>=0?'var(--green-dark)':'var(--red-dark)'};margin-top:4px;border-top:1px solid var(--gray-100);padding-top:4px;">差 ${id>=0?'+':''}$${fmt(id)}</div>
+          </div>
+          <div style="background:white;border-radius:8px;padding:8px 10px;border:1px solid var(--gray-100);">
+            <div style="font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;">支出</div>
+            <div style="font-size:13px;font-weight:700;color:var(--gray-800);margin-top:2px;">${yr}: $${fmt(a.exp)}</div>
+            <div style="font-size:13px;color:var(--gray-500);">${yr2}: $${fmt(b.exp)}</div>
+            <div style="font-size:11px;font-weight:600;color:${ed<=0?'var(--green-dark)':'var(--red-dark)'};margin-top:4px;border-top:1px solid var(--gray-100);padding-top:4px;">差 ${ed>=0?'+':''}$${fmt(ed)}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+    // Summary card
+    const incDiff=ti1-ti2,expDiff=te1-te2;
+    let ch=`<div class="content-card" style="margin-top:16px;">
+      <h3>${yr} vs ${yr2} 年度比較</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="background:var(--green-bg);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase;">年度收入差</div>
+          <div style="font-size:20px;font-weight:800;color:${incDiff>=0?'var(--green-dark)':'var(--red-dark)'};">${incDiff>=0?'+':''}$${fmt(incDiff)}</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">${yr}: $${fmt(ti1)} / ${yr2}: $${fmt(ti2)}</div>
+        </div>
+        <div style="background:var(--red-bg);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;">年度支出差</div>
+          <div style="font-size:20px;font-weight:800;color:${expDiff<=0?'var(--green-dark)':'var(--red-dark)'};">${expDiff>=0?'+':''}$${fmt(expDiff)}</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">${yr}: $${fmt(te1)} / ${yr2}: $${fmt(te2)}</div>
+        </div>
+      </div>
+      ${cards?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">${cards}</div>`:'<div class="empty-state"><span class="empty-text">兩個年度都沒有紀錄</span></div>'}
+    </div>`;
     document.getElementById('year-compare').innerHTML=ch;
   } else document.getElementById('year-compare').innerHTML='';
 }
