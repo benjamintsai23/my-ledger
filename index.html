@@ -908,6 +908,34 @@ async function fetchPending(){
         importCount+=newRecurring.length;
       }
     }
+    // Import loans
+    if(data.loans&&data.loans.length){
+      const newLoans=data.loans.filter(l=>!imported.includes(l.id));
+      if(newLoans.length){
+        newLoans.forEach(l=>{
+          const idx=loans.findIndex(x=>x.name===l.name);
+          if(idx>=0){loans[idx].total=l.total;loans[idx].paid=l.paid;loans[idx].rate=l.rate;loans[idx].monthly=l.monthly;loans[idx].start=l.start;loans[idx].end=l.end;}
+          else{loans.push(l);}
+        });
+        saveLoans();
+        imported.push(...newLoans.map(l=>l.id));
+        importCount+=newLoans.length;
+      }
+    }
+    // Import funds
+    if(data.funds&&data.funds.length){
+      const newFunds=data.funds.filter(f=>!imported.includes(f.id));
+      if(newFunds.length){
+        newFunds.forEach(f=>{
+          const idx=funds.findIndex(x=>x.name===f.name);
+          if(idx>=0){funds[idx].units=f.units;funds[idx].nav=f.nav;funds[idx].cost=f.cost;funds[idx].currency=f.currency;funds[idx].updatedAt=f.updatedAt;}
+          else{funds.push(f);}
+        });
+        saveFunds();
+        imported.push(...newFunds.map(f=>f.id));
+        importCount+=newFunds.length;
+      }
+    }
     if(!importCount)return;
     localStorage.setItem('my-ledger-imported',JSON.stringify(imported));
     refreshTodayView();
