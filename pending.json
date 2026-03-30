@@ -22,5 +22,7 @@
   {"id":1743321600010,"type":"expense","category":"subscription","amount":650,"note":"Gemini 訂閱"},
   {"id":1743321600011,"type":"expense","category":"insurance","amount":1635,"note":"台灣人壽（年繳 19,619÷12，保額 30 萬，12月扣款）"},
   {"id":1743321600013,"type":"expense","category":"insurance","amount":2176,"note":"全球人壽（年繳 26,110÷12，10月扣款）"},
-  {"id":1743321600016,"type":"expense","category":"other-out","amount":1666,"note":"Mac Mini 分期（19,990÷12，剩12期）"}
+  {"id":1743321600016,"type":"expense","category":"other-out","amount":1666,"note":"Mac Mini 分期（19,990÷12，剩12期）"},
+  {"id":1743321600017,"type":"expense","category":"entertain","amount":1488,"note":"World Gym 健身房"},
+  {"id":1743321600018,"type":"expense","category":"food","amount":1470,"note":"三得利（綠界）"}
 ]}
