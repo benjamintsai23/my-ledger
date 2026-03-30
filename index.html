@@ -502,6 +502,15 @@ tr:hover { background: var(--gray-50); }
     </div>
 
     <div class="content-card">
+      <h3>AI 財務分析同步</h3>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">將財務資料同步到 Telegram，讓 AI 幫你分析資產配置、風險與趨勢</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="syncToTelegram()" id="sync-tg-btn">同步資料到 AI</button>
+      </div>
+      <div id="sync-status" style="margin-top:10px;font-size:12px;color:var(--gray-500);"></div>
+    </div>
+
+    <div class="content-card">
       <h3>資料備份與還原</h3>
       <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px;">備份包含所有記帳紀錄、資產、貸款、預算、固定收支</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1210,6 +1219,52 @@ function exportMonthly(){
 }
 function csvE(s){s=s||'';return s.includes(',')||s.includes('"')?'"'+s.replace(/"/g,'""')+'"':s;}
 function dl(c,f,t){const b=new Blob([c],{type:t+';charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f;a.click();}
+
+// ===== AI Sync via Telegram =====
+async function syncToTelegram(){
+  const btn=document.getElementById('sync-tg-btn');
+  const status=document.getElementById('sync-status');
+  btn.textContent='同步中...';btn.disabled=true;
+  status.textContent='';
+  try{
+    const USD_TWD=32;
+    const snapshot={
+      syncTime:new Date().toISOString(),
+      records:records,
+      assets:assets,
+      stocks:stocks.map(s=>({symbol:s.symbol,shares:s.shares,cost:s.cost,price:s.price,lastUpdate:s.lastUpdate})),
+      funds:JSON.parse(localStorage.getItem('my-ledger-funds')||'[]'),
+      loans:loans,
+      budgets:budgets,
+      recurring:recurring,
+      summary:{
+        totalAssetsTWD:assets.reduce((s,a)=>s+a.amount,0)+getStocksTotalNTD()+getFundsTotalNTD(),
+        totalLiabilities:loans.reduce((s,l)=>s+(l.total-l.paid),0),
+        stocksTotalUSD:getStocksTotalUSD(),
+        stocksTotalCostUSD:getStocksTotalCostUSD(),
+        usdRate:USD_TWD
+      }
+    };
+    const json=JSON.stringify(snapshot);
+    const TOKEN='8662109825:AAENi3ulO0PZ3Q3F6Gi1a-74323e_cD9V-E';
+    const CHAT='7077943860';
+    // Send as document for large data
+    const blob=new Blob([json],{type:'application/json'});
+    const fd=new FormData();
+    fd.append('chat_id',CHAT);
+    fd.append('document',blob,'ledger-snapshot.json');
+    fd.append('caption','📊 記帳本資料同步 ('+new Date().toLocaleString('zh-TW')+')');
+    const resp=await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`,{method:'POST',body:fd});
+    if(!resp.ok) throw new Error('Telegram API error');
+    status.textContent='✅ 同步成功！在 Telegram 跟 AI 說「分析財務」即可取得分析報告';
+    status.style.color='var(--green-dark)';
+  }catch(e){
+    console.error('Sync failed',e);
+    status.textContent='❌ 同步失敗：'+e.message;
+    status.style.color='var(--red-dark)';
+  }
+  btn.textContent='同步資料到 AI';btn.disabled=false;
+}
 </script>
 </body>
 </html>
