@@ -959,38 +959,27 @@ async function refreshStockPrices(){
   if(stocks.length===0){renderStocks();return;}
   const btn=document.getElementById('refresh-stocks-btn');
   btn.textContent='更新中...';btn.disabled=true;
-  const symbols=stocks.map(s=>s.symbol).join(',');
-  try{
-    // Use Yahoo Finance v8 API (no key needed)
-    const resp=await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbols}&range=1d&interval=1d`);
-    if(!resp.ok) throw new Error('API error');
-    const data=await resp.json();
-    stocks.forEach(s=>{
-      const result=data.spark?.result?.find(r=>r.symbol===s.symbol);
-      if(result && result.response?.[0]?.meta?.regularMarketPrice){
-        s.price=result.response[0].meta.regularMarketPrice;
-        s.prevClose=result.response[0].meta.previousClose||0;
-        s.lastUpdate=new Date().toLocaleString('zh-TW');
-      }
-    });
-    saveStocks();
-  }catch(e){
-    // Fallback: try individual fetches via alternative API
+  const proxy='https://corsproxy.io/?';
+  let updated=0;
+  for(const s of stocks){
     try{
-      for(const s of stocks){
-        const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${s.symbol}&range=1d&interval=1d`);
-        if(r.ok){const d=await r.json();const res=d.spark?.result?.[0];
-          if(res?.response?.[0]?.meta?.regularMarketPrice){
-            s.price=res.response[0].meta.regularMarketPrice;
-            s.prevClose=res.response[0].meta.previousClose||0;
-            s.lastUpdate=new Date().toLocaleString('zh-TW');}}
+      const url=`${proxy}https://query1.finance.yahoo.com/v8/finance/chart/${s.symbol}?interval=1d&range=1d`;
+      const r=await fetch(url);
+      if(!r.ok) continue;
+      const d=await r.json();
+      const meta=d.chart?.result?.[0]?.meta;
+      if(meta?.regularMarketPrice){
+        s.price=meta.regularMarketPrice;
+        s.prevClose=meta.chartPreviousClose||meta.previousClose||0;
+        s.lastUpdate=new Date().toLocaleString('zh-TW');
+        updated++;
       }
-      saveStocks();
-    }catch(e2){console.error('Stock fetch failed',e2);}
+    }catch(e){console.warn(`Failed to fetch ${s.symbol}`,e);}
   }
+  if(updated>0) saveStocks();
   btn.textContent='更新報價';btn.disabled=false;
   renderStocks();
-  refreshBalance(); // Update total assets
+  refreshBalance();
 }
 
 function getStocksTotalUSD(){return stocks.reduce((s,st)=>s+st.price*st.shares,0);}
