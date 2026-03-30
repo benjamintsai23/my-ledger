@@ -402,6 +402,7 @@ tr:hover { background: var(--gray-50); }
     <div class="sub-tabs">
       <button class="sub-tab active" onclick="showSubTab('assets',this)">資產</button>
       <button class="sub-tab" onclick="showSubTab('stocks',this)">美股持倉</button>
+      <button class="sub-tab" onclick="showSubTab('funds',this)">基金</button>
       <button class="sub-tab" onclick="showSubTab('loans',this)">貸款</button>
     </div>
     <div id="subtab-assets">
@@ -433,6 +434,21 @@ tr:hover { background: var(--gray-50); }
       </div>
       <div class="stat-grid" id="stocks-summary"></div>
       <div id="stocks-list"></div>
+    </div>
+    <div id="subtab-funds" style="display:none;">
+      <div class="content-card">
+        <h3>新增基金</h3>
+        <div class="form-grid">
+          <div class="field"><label>基金名稱</label><input type="text" id="fd-name" placeholder="例：安聯收益成長基金"></div>
+          <div class="field"><label>幣別</label><select id="fd-currency"><option value="TWD">台幣 TWD</option><option value="USD">美元 USD</option></select></div>
+          <div class="field"><label>單位數</label><input type="number" id="fd-units" placeholder="0" step="0.01" min="0"></div>
+          <div class="field"><label>目前淨值</label><input type="number" id="fd-nav" placeholder="0" step="0.01" min="0"></div>
+          <div class="field"><label>成本淨值</label><input type="number" id="fd-cost" placeholder="選填" step="0.01" min="0"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addFund()">新增基金</button>
+      </div>
+      <div class="stat-grid" id="funds-summary"></div>
+      <div id="funds-list"></div>
     </div>
     <div id="subtab-loans" style="display:none;">
       <div class="content-card">
@@ -783,10 +799,11 @@ function showChart() {
 
 // ===== 資產負債 =====
 function showSubTab(name,el) {
-  ['assets','stocks','loans'].forEach(t=>document.getElementById('subtab-'+t).style.display=t===name?'block':'none');
+  ['assets','stocks','funds','loans'].forEach(t=>document.getElementById('subtab-'+t).style.display=t===name?'block':'none');
   document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
   if(name==='stocks')renderStocks();
+  if(name==='funds')renderFunds();
 }
 function addAsset() {
   const name=document.getElementById('a-name').value.trim(),type=document.getElementById('a-type').value;
@@ -840,8 +857,8 @@ function autoUpdateLoanPaid() {
 autoUpdateLoanPaid();
 
 function refreshBalance() {
-  const stocksNTD=getStocksTotalNTD();
-  const ta=assets.reduce((s,a)=>s+a.amount,0)+stocksNTD,tl=loans.reduce((s,l)=>s+(l.total-l.paid),0),nw=ta-tl,mp=loans.reduce((s,l)=>s+l.monthly,0);
+  const stocksNTD=getStocksTotalNTD(), fundsNTD=getFundsTotalNTD();
+  const ta=assets.reduce((s,a)=>s+a.amount,0)+stocksNTD+fundsNTD,tl=loans.reduce((s,l)=>s+(l.total-l.paid),0),nw=ta-tl,mp=loans.reduce((s,l)=>s+l.monthly,0);
   document.getElementById('networth-summary').innerHTML=`
     <div class="stat-card green"><div class="stat-label">總資產</div><div class="stat-value">$${fmt(ta)}</div></div>
     <div class="stat-card red"><div class="stat-label">總負債</div><div class="stat-value">$${fmt(tl)}</div></div>
@@ -1002,6 +1019,98 @@ function renderStocks(){
 // Include stocks in total assets
 function getStocksTotalNTD(){ return getStocksTotalUSD()*32; } // 粗估匯率，可在設定調整
 
+// ===== 基金 =====
+let funds = JSON.parse(localStorage.getItem('my-ledger-funds') || '[]');
+function saveFunds(){ localStorage.setItem('my-ledger-funds', JSON.stringify(funds)); }
+
+function addFund(){
+  const name=document.getElementById('fd-name').value.trim();
+  const currency=document.getElementById('fd-currency').value;
+  const units=parseFloat(document.getElementById('fd-units').value)||0;
+  const nav=parseFloat(document.getElementById('fd-nav').value)||0;
+  const cost=parseFloat(document.getElementById('fd-cost').value)||0;
+  if(!name||units<=0||nav<=0){alert('請填寫基金名稱、單位數和目前淨值');return;}
+  funds.push({id:Date.now(),name,currency,units,nav,cost,updatedAt:new Date().toISOString().slice(0,10)});
+  saveFunds();
+  ['fd-name','fd-units','fd-nav','fd-cost'].forEach(i=>document.getElementById(i).value='');
+  renderFunds(); refreshBalance();
+}
+
+function updateFundNav(id){
+  const f=funds.find(x=>x.id===id);if(!f)return;
+  const v=prompt(`更新「${f.name}」目前淨值：`,f.nav);if(v===null)return;
+  const p=parseFloat(v);if(isNaN(p)||p<=0){alert('淨值無效');return;}
+  f.nav=p; f.updatedAt=new Date().toISOString().slice(0,10);
+  saveFunds(); renderFunds(); refreshBalance();
+}
+
+function editFund(id){
+  const f=funds.find(x=>x.id===id);if(!f)return;
+  const units=prompt(`${f.name} 單位數：`,f.units);if(units===null)return;
+  const cost=prompt(`${f.name} 成本淨值：`,f.cost||0);if(cost===null)return;
+  const currency=prompt(`${f.name} 幣別 (TWD/USD)：`,f.currency||'TWD');if(currency===null)return;
+  f.units=parseFloat(units)||f.units; f.cost=parseFloat(cost)||0;
+  f.currency=currency.trim().toUpperCase()==='USD'?'USD':'TWD';
+  saveFunds(); renderFunds(); refreshBalance();
+}
+
+function deleteFund(id){if(!confirm('確定刪除？'))return;funds=funds.filter(f=>f.id!==id);saveFunds();renderFunds();refreshBalance();}
+
+function getFundsTotalNTD(){
+  return funds.reduce((s,f)=>{
+    const val=f.nav*f.units;
+    return s+(f.currency==='USD'?val*32:val);
+  },0);
+}
+
+function renderFunds(){
+  const totalNTD=getFundsTotalNTD();
+  const totalCostNTD=funds.reduce((s,f)=>{const c=(f.cost||0)*f.units;return s+(f.currency==='USD'?c*32:c);},0);
+  const pnl=totalCostNTD>0?totalNTD-totalCostNTD:0;
+  const pnlPct=totalCostNTD>0?((totalNTD-totalCostNTD)/totalCostNTD*100).toFixed(1):0;
+
+  document.getElementById('funds-summary').innerHTML=funds.length>0?`
+    <div class="stat-card blue"><div class="stat-label">基金總市值 (NTD)</div><div class="stat-value">$${fmt(totalNTD)}</div></div>
+    <div class="stat-card ${pnl>=0?'green':'red'}"><div class="stat-label">未實現損益</div><div class="stat-value">${pnl>=0?'+':''}$${fmt(pnl)}</div></div>
+    <div class="stat-card ${pnl>=0?'green':'red'}"><div class="stat-label">報酬率</div><div class="stat-value">${pnl>=0?'+':''}${pnlPct}%</div></div>
+  `:'';
+
+  const list=document.getElementById('funds-list');
+  if(!funds.length){list.innerHTML='<div class="empty-state"><span class="empty-icon">💼</span><span class="empty-text">尚未新增基金</span></div>';return;}
+
+  list.innerHTML=funds.map(f=>{
+    const val=f.nav*f.units;
+    const valNTD=f.currency==='USD'?val*32:val;
+    const pnl=f.cost>0?(f.nav-f.cost)*f.units:0;
+    const pnlNTD=f.currency==='USD'?pnl*32:pnl;
+    const pnlPct=f.cost>0?((f.nav-f.cost)/f.cost*100).toFixed(1):0;
+    const currSym=f.currency==='USD'?'USD':'NTD';
+    return `<div class="item-row" style="flex-direction:column;align-items:stretch;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div>
+          <span class="row-name">${esc(f.name)}</span>
+          <span class="badge badge-gray" style="margin-left:6px;">${currSym}</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="row-amount" style="color:var(--blue);">$${f.currency==='USD'?val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):fmt(val)}</div>
+          ${f.currency==='USD'?`<div style="font-size:11px;color:var(--gray-500);">≈ NT$${fmt(valNTD)}</div>`:''}
+        </div>
+      </div>
+      <div class="row-detail" style="margin-top:4px;">
+        ${f.units} 單位 · 淨值 ${f.nav}
+        ${f.cost>0?' · 成本淨值 '+f.cost:''}
+        ${f.cost>0?' · <span style="color:'+(pnl>=0?'var(--green-dark)':'var(--red-dark)')+';font-weight:600;">'+(pnl>=0?'+':'')+pnlPct+'%</span>':''}
+        · 更新: ${f.updatedAt||'-'}
+      </div>
+      <div class="row-actions" style="margin-top:8px;">
+        <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;" onclick="updateFundNav(${f.id})">更新淨值</button>
+        <button class="btn btn-edit" onclick="editFund(${f.id})">編輯</button>
+        <button class="btn btn-danger" onclick="deleteFund(${f.id})">刪除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ===== 預算 =====
 function showBudget() {
   const yr=+document.getElementById('budget-year').value, mo=+document.getElementById('budget-month').value;
@@ -1049,18 +1158,18 @@ function refreshRecurringList(){
 
 // ===== 備份 =====
 function backupAll(){
-  const d={version:1,exportDate:new Date().toISOString(),records,assets,loans,budgets,recurring,stocks};
+  const d={version:1,exportDate:new Date().toISOString(),records,assets,loans,budgets,recurring,stocks,funds};
   const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`my-ledger-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
 }
 function restoreAll(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){
   try{const d=JSON.parse(ev.target.result);if(!d.records||!Array.isArray(d.records)){alert('格式不正確');return;}
     if(!confirm(`確定匯入？將覆蓋現有資料。\n紀錄數：${d.records.length} 筆`))return;
-    records=d.records||[];assets=d.assets||[];loans=d.loans||[];budgets=d.budgets||{};recurring=d.recurring||[];stocks=d.stocks||[];
-    save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();alert('還原成功！');refreshTodayView();refreshRecurringList();
+    records=d.records||[];assets=d.assets||[];loans=d.loans||[];budgets=d.budgets||{};recurring=d.recurring||[];stocks=d.stocks||[];funds=d.funds||[];
+    save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();alert('還原成功！');refreshTodayView();refreshRecurringList();
   }catch(err){alert('解析失敗：'+err.message);}};reader.readAsText(file);e.target.value='';}
 function clearAll(){if(!confirm('確定清除所有資料？無法復原！'))return;if(!confirm('再次確認？'))return;
-  records=[];assets=[];loans=[];budgets={};recurring=[];stocks=[];save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();alert('已清除');refreshTodayView();refreshRecurringList();}
+  records=[];assets=[];loans=[];budgets={};recurring=[];stocks=[];funds=[];save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();alert('已清除');refreshTodayView();refreshRecurringList();}
 
 // ===== Export =====
 function exportCSV(){
