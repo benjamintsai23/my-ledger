@@ -590,6 +590,34 @@ function toggleSidebar() {
 // ===== Init =====
 document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
 initYearSelects(); updateCategorySelect(); refreshTodayView(); buildFilterCats(); updateRecurringCatSelect(); refreshRecurringList();
+// Auto-import pending records from GitHub
+fetchPending();
+
+async function fetchPending(){
+  try{
+    const resp=await fetch('https://benjamintsai23.github.io/my-ledger/pending.json?t='+Date.now());
+    if(!resp.ok)return;
+    const data=await resp.json();
+    if(!data.records||!data.records.length)return;
+    // Check which records are new (not already imported)
+    const imported=JSON.parse(localStorage.getItem('my-ledger-imported')||'[]');
+    const newRecs=data.records.filter(r=>!imported.includes(r.id));
+    if(!newRecs.length)return;
+    // Add to records
+    newRecs.forEach(r=>records.push(r));
+    save();
+    // Mark as imported
+    const allImported=[...imported,...newRecs.map(r=>r.id)];
+    localStorage.setItem('my-ledger-imported',JSON.stringify(allImported));
+    // Notify
+    refreshTodayView();
+    const badge=document.createElement('div');
+    badge.style.cssText='position:fixed;top:70px;right:16px;background:var(--green);color:white;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s;';
+    badge.textContent=`已自動匯入 ${newRecs.length} 筆紀錄`;
+    document.body.appendChild(badge);
+    setTimeout(()=>badge.remove(),4000);
+  }catch(e){}
+}
 
 function initYearSelects() {
   const now = new Date();
