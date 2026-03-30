@@ -6,7 +6,10 @@
   {"id":1743310800002,"type":"expense","date":"2026-03-30","category":"food","amount":59,"note":"7-11"}
 ],"assets":[
   {"id":1743321600001,"name":"中國人壽鑫美傳富（美元儲蓄險）","type":"other","amount":110577,"note":"解約金 $3,474 USD，利率 3.35%，保單號 D1779159，下期繳費 2026/05/10","updatedAt":"2026-03-30"},
-  {"id":1743321600002,"name":"實體黃金","type":"other","amount":50850,"note":"3錢，成本約 30,000 元（每錢 10,000），回收價 16,950/錢","updatedAt":"2026-03-30"}
+  {"id":1743321600002,"name":"實體黃金","type":"other","amount":50850,"note":"3錢，成本約 30,000 元（每錢 10,000），回收價 16,950/錢","updatedAt":"2026-03-30"},
+  {"id":1743321600004,"name":"Firstrade 現金","type":"bank","amount":19209,"note":"$600.28 USD，匯率 32","updatedAt":"2026-03-30"}
 ],"stocks":[
-  {"id":1743321600003,"symbol":"GOOGL","shares":1,"cost":95.25,"price":0,"lastUpdate":""}
+  {"id":1743321600003,"symbol":"GOOGL","shares":1,"cost":95.25,"price":0,"lastUpdate":""},
+  {"id":1743321600005,"symbol":"ONDS","shares":275,"cost":0,"price":0,"lastUpdate":""},
+  {"id":1743321600006,"symbol":"TSLL","shares":16.24466,"cost":0,"price":0,"lastUpdate":""}
 ]}
