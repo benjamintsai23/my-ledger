@@ -13,4 +13,8 @@
   {"id":1743321600003,"symbol":"GOOGL","shares":1,"cost":95.25,"price":0,"lastUpdate":""},
   {"id":1743321600005,"symbol":"ONDS","shares":275,"cost":0,"price":0,"lastUpdate":""},
   {"id":1743321600006,"symbol":"TSLL","shares":16.24466,"cost":0,"price":0,"lastUpdate":""}
+],"recurring":[
+  {"id":1743321600008,"type":"expense","category":"housing","amount":8100,"note":"房租"},
+  {"id":1743321600009,"type":"expense","category":"subscription","amount":3200,"note":"Claude 訂閱（$100 USD）"},
+  {"id":1743321600010,"type":"expense","category":"subscription","amount":650,"note":"Cursor 訂閱"}
 ]}

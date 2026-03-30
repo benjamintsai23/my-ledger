@@ -649,10 +649,25 @@ async function fetchPending(){
         importCount+=newAssets.length;
       }
     }
+    // Import recurring
+    if(data.recurring&&data.recurring.length){
+      const newRecurring=data.recurring.filter(r=>!imported.includes(r.id));
+      if(newRecurring.length){
+        newRecurring.forEach(r=>{
+          const idx=recurring.findIndex(x=>x.note===r.note&&x.type===r.type);
+          if(idx>=0){recurring[idx].amount=r.amount;recurring[idx].category=r.category;}
+          else{recurring.push(r);}
+        });
+        saveRecurring();
+        imported.push(...newRecurring.map(r=>r.id));
+        importCount+=newRecurring.length;
+      }
+    }
     if(!importCount)return;
     localStorage.setItem('my-ledger-imported',JSON.stringify(imported));
     refreshTodayView();
     if(typeof refreshBalance==='function')refreshBalance();
+    if(typeof refreshRecurringList==='function')refreshRecurringList();
     const badge=document.createElement('div');
     badge.style.cssText='position:fixed;top:70px;right:16px;background:var(--green);color:white;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s;';
     badge.textContent=`已自動匯入 ${importCount} 筆資料`;
