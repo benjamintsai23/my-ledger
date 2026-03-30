@@ -17,12 +17,12 @@
   {"id":1743321600005,"symbol":"ONDS","shares":275,"cost":0,"price":0,"lastUpdate":""},
   {"id":1743321600006,"symbol":"TSLL","shares":16.24466,"cost":0,"price":0,"lastUpdate":""}
 ],"loans":[
-  {"id":1743321600101,"name":"中信貸款(1)","type":"personal","total":500000,"paid":182914,"rate":5.0,"monthly":6642,"start":"2025-01-01","end":"","note":""},
-  {"id":1743321600102,"name":"中信貸款(2)","type":"personal","total":500000,"paid":202298,"rate":5.0,"monthly":7194,"start":"2025-01-01","end":"","note":""},
-  {"id":1743321600103,"name":"Line Bank","type":"personal","total":150000,"paid":43370,"rate":8.0,"monthly":1841,"start":"2025-01-01","end":"","note":""},
-  {"id":1743321600104,"name":"Line 貸款(1)","type":"personal","total":60000,"paid":19278,"rate":10.0,"monthly":714,"start":"2025-01-01","end":"","note":""},
-  {"id":1743321600105,"name":"Line 貸款(2)","type":"personal","total":80000,"paid":20861,"rate":10.0,"monthly":1409,"start":"2025-01-01","end":"","note":""},
-  {"id":1743321600106,"name":"Line 貸款(3)","type":"personal","total":150000,"paid":38062,"rate":10.0,"monthly":3838,"start":"2025-01-01","end":"","note":""}
+  {"id":1743321600111,"name":"中信貸款(1)","type":"personal","total":430000,"paid":73797,"rate":7.86,"monthly":6642,"start":"2024-10-21","end":"2031-10-21","note":"84期，已還16期"},
+  {"id":1743321600112,"name":"中信貸款(2)","type":"personal","total":420000,"paid":79550,"rate":11.72,"monthly":7194,"start":"2024-09-02","end":"2031-09-02","note":"84期，已還18期"},
+  {"id":1743321600113,"name":"Line Bank","type":"personal","total":117676,"paid":8374,"rate":8.39,"monthly":1841,"start":"2025-09-01","end":"2032-09-01","note":"剩77期"},
+  {"id":1743321600114,"name":"Line 貸款(1)","type":"personal","total":300000,"paid":175417,"rate":3.20,"monthly":3838,"start":"2022-02-21","end":"2029-02-21","note":"剩34期"},
+  {"id":1743321600115,"name":"Line 貸款(2)","type":"personal","total":100000,"paid":31873,"rate":4.91,"monthly":1409,"start":"2023-10-13","end":"2030-10-13","note":"剩54期"},
+  {"id":1743321600116,"name":"Line 貸款(3)","type":"personal","total":60000,"paid":26963,"rate":8.31,"monthly":714,"start":"2023-12-09","end":"2030-12-09","note":"剩56期"}
 ],"funds":[
   {"id":1743321600201,"name":"瀚亞優質公司債基金A(美元)","currency":"USD","units":185.566,"nav":14.735,"cost":0,"updatedAt":"2026-03-30"},
   {"id":1743321600202,"name":"貝萊德世界科技基金A2(美元)","currency":"USD","units":16.66,"nav":103.07,"cost":0,"updatedAt":"2026-03-30"},
