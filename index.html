@@ -620,6 +620,20 @@ async function fetchPending(){
         importCount+=newRecs.length;
       }
     }
+    // Import stocks
+    if(data.stocks&&data.stocks.length){
+      const newStocks=data.stocks.filter(s=>!imported.includes(s.id));
+      if(newStocks.length){
+        newStocks.forEach(s=>{
+          const idx=stocks.findIndex(x=>x.symbol===s.symbol);
+          if(idx>=0){stocks[idx].shares=s.shares;stocks[idx].cost=s.cost;}
+          else{stocks.push(s);}
+        });
+        saveStocks();
+        imported.push(...newStocks.map(s=>s.id));
+        importCount+=newStocks.length;
+      }
+    }
     // Import assets
     if(data.assets&&data.assets.length){
       const newAssets=data.assets.filter(a=>!imported.includes(a.id));
