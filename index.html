@@ -793,6 +793,15 @@ function addLoan() {
   document.getElementById('l-start').value='';document.getElementById('l-end').value='';refreshBalance();
 }
 function updateLoanPaid(id){const l=loans.find(x=>x.id===id);if(!l)return;const v=prompt(`更新「${l.name}」已還金額：`,l.paid);if(v===null)return;const p=parseFloat(v);if(isNaN(p)||p<0){alert('金額無效');return;}l.paid=p;saveLoans();refreshBalance();}
+function editLoan(id){const l=loans.find(x=>x.id===id);if(!l)return;
+  const monthly=prompt('每月還款金額：',l.monthly||0);if(monthly===null)return;
+  const rate=prompt('年利率 (%)：',l.rate||0);if(rate===null)return;
+  const start=prompt('起始日期 (YYYY-MM-DD)：',l.start||'');if(start===null)return;
+  const end=prompt('到期日期 (YYYY-MM-DD)：',l.end||'');if(end===null)return;
+  const note=prompt('備註：',l.note||'');if(note===null)return;
+  l.monthly=parseFloat(monthly)||0; l.rate=parseFloat(rate)||0;
+  l.start=start.trim(); l.end=end.trim(); l.note=note.trim();
+  saveLoans();refreshBalance();}
 function deleteLoan(id){if(!confirm('確定刪除？'))return;loans=loans.filter(l=>l.id!==id);saveLoans();refreshBalance();}
 function refreshBalance() {
   const ta=assets.reduce((s,a)=>s+a.amount,0),tl=loans.reduce((s,l)=>s+(l.total-l.paid),0),nw=ta-tl,mp=loans.reduce((s,l)=>s+l.monthly,0);
@@ -822,7 +831,7 @@ function refreshBalance() {
           <div class="row-name">${esc(l.name)}</div><div class="row-amount" style="color:var(--red-dark);">剩餘 $${fmt(r)}</div></div>
         <div class="row-detail" style="margin:4px 0;">總額 $${fmt(l.total)} · 已還 $${fmt(l.paid)}${l.rate?' · 利率 '+l.rate+'%':''}${l.monthly?' · 月付 $'+fmt(l.monthly):''}${l.start?' · '+l.start:''}${l.end?' ~ '+l.end:''}${l.note?' · '+esc(l.note):''}</div>
         <div class="progress-lg"><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${bc};">${pct}%</div></div></div>
-        <div class="row-actions" style="margin-top:8px;"><button class="btn btn-edit" onclick="updateLoanPaid(${l.id})">更新已還</button><button class="btn btn-danger" onclick="deleteLoan(${l.id})">刪除</button></div></div>`;});}
+        <div class="row-actions" style="margin-top:8px;"><button class="btn btn-edit" onclick="updateLoanPaid(${l.id})">更新已還</button><button class="btn btn-edit" onclick="editLoan(${l.id})">編輯</button><button class="btn btn-danger" onclick="deleteLoan(${l.id})">刪除</button></div></div>`;});}
   document.getElementById('loans-list').innerHTML=lh||'<div class="empty-state"><span class="empty-icon">📋</span><span class="empty-text">還沒有貸款紀錄</span></div>';
 }
 
