@@ -18,5 +18,6 @@
   {"id":1743321600008,"type":"expense","category":"housing","amount":8100,"note":"房租"},
   {"id":1743321600009,"type":"expense","category":"subscription","amount":3200,"note":"Claude 訂閱（$100 USD）"},
   {"id":1743321600010,"type":"expense","category":"subscription","amount":650,"note":"Cursor 訂閱"},
-  {"id":1743321600011,"type":"expense","category":"insurance","amount":1635,"note":"保險（年繳 19,619÷12，保額 30 萬，12月扣款）"}
+  {"id":1743321600011,"type":"expense","category":"insurance","amount":1635,"note":"台灣人壽（年繳 19,619÷12，保額 30 萬，12月扣款）"},
+  {"id":1743321600013,"type":"expense","category":"insurance","amount":2176,"note":"全球人壽（年繳 26,110÷12，10月扣款）"}
 ]}
