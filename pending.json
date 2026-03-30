@@ -1,4 +1,5 @@
 {"records":[
   {"id":1743303600001,"type":"expense","date":"2026-03-20","category":"food","amount":60,"note":"早餐"},
-  {"id":1743303600002,"type":"expense","date":"2026-03-20","category":"food","amount":25,"note":"豆漿"}
+  {"id":1743303600002,"type":"expense","date":"2026-03-20","category":"food","amount":25,"note":"豆漿"},
+  {"id":1743303600003,"type":"expense","date":"2026-03-20","category":"food","amount":95,"note":"晚餐"}
 ]}
