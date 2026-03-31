@@ -871,8 +871,8 @@ async function fetchPending(){
       const newStocks=data.stocks.filter(s=>!imported.includes(s.id));
       if(newStocks.length){
         newStocks.forEach(s=>{
-          const idx=stocks.findIndex(x=>x.symbol===s.symbol);
-          if(idx>=0){stocks[idx].shares=s.shares;stocks[idx].cost=s.cost;}
+          const idx=stocks.findIndex(x=>x.id===s.id||x.symbol===s.symbol);
+          if(idx>=0){stocks[idx].shares=s.shares;stocks[idx].cost=s.cost;if(s.price>0)stocks[idx].price=s.price;}
           else{stocks.push(s);}
         });
         saveStocks();
@@ -885,8 +885,8 @@ async function fetchPending(){
       const newAssets=data.assets.filter(a=>!imported.includes(a.id));
       if(newAssets.length){
         newAssets.forEach(a=>{
-          const idx=assets.findIndex(x=>x.name===a.name);
-          if(idx>=0){assets[idx].amount=a.amount;assets[idx].note=a.note||assets[idx].note;assets[idx].updatedAt=a.updatedAt||new Date().toISOString().slice(0,10);}
+          const idx=assets.findIndex(x=>x.id===a.id||x.name===a.name);
+          if(idx>=0){assets[idx].amount=a.amount;assets[idx].note=a.note||assets[idx].note;assets[idx].type=a.type||assets[idx].type;assets[idx].updatedAt=a.updatedAt||new Date().toISOString().slice(0,10);}
           else{assets.push(a);}
         });
         saveAssets();
@@ -913,8 +913,8 @@ async function fetchPending(){
       const newLoans=data.loans.filter(l=>!imported.includes(l.id));
       if(newLoans.length){
         newLoans.forEach(l=>{
-          const idx=loans.findIndex(x=>x.name===l.name);
-          if(idx>=0){loans[idx].total=l.total;loans[idx].paid=l.paid;loans[idx].rate=l.rate;loans[idx].monthly=l.monthly;loans[idx].start=l.start;loans[idx].end=l.end;}
+          const idx=loans.findIndex(x=>x.id===l.id||x.name===l.name);
+          if(idx>=0){loans[idx].total=l.total;loans[idx].paid=l.paid;loans[idx].rate=l.rate;loans[idx].monthly=l.monthly;loans[idx].start=l.start;loans[idx].end=l.end;loans[idx].type=l.type||loans[idx].type;loans[idx].note=l.note||loans[idx].note;}
           else{loans.push(l);}
         });
         saveLoans();
@@ -927,8 +927,8 @@ async function fetchPending(){
       const newFunds=data.funds.filter(f=>!imported.includes(f.id));
       if(newFunds.length){
         newFunds.forEach(f=>{
-          const idx=funds.findIndex(x=>x.name===f.name);
-          if(idx>=0){funds[idx].units=f.units;funds[idx].nav=f.nav;funds[idx].cost=f.cost;funds[idx].currency=f.currency;funds[idx].updatedAt=f.updatedAt;}
+          const idx=funds.findIndex(x=>x.id===f.id||x.name===f.name);
+          if(idx>=0){funds[idx].units=f.units;funds[idx].nav=f.nav;funds[idx].cost=f.cost;funds[idx].currency=(f.currency||'').toUpperCase()||funds[idx].currency;funds[idx].updatedAt=f.updatedAt;}
           else{funds.push(f);}
         });
         saveFunds();
@@ -1504,7 +1504,7 @@ function addStock() {
   const cost=parseFloat(document.getElementById('s-cost').value)||0;
   if(!symbol||shares<=0){alert('請填寫股票代號和股數');return;}
   if(stocks.find(s=>s.symbol===symbol)){alert(`${symbol} 已存在，請先刪除再重新新增`);return;}
-  stocks.push({id:Date.now(),symbol,shares,cost,price:0,lastUpdate:''});
+  stocks.push({id:Date.now(),symbol,shares,cost,price:0,lastUpdate:'',fetchError:false});
   saveStocks();
   document.getElementById('s-symbol').value='';document.getElementById('s-shares').value='';document.getElementById('s-cost').value='';
   refreshStockPrices();
@@ -1892,10 +1892,10 @@ function restoreAll(e){const file=e.target.files[0];if(!file)return;const reader
   try{const d=JSON.parse(ev.target.result);if(!d.records||!Array.isArray(d.records)){alert('格式不正確');return;}
     if(!confirm(`確定匯入？將覆蓋現有資料。\n紀錄數：${d.records.length} 筆`))return;
     records=d.records||[];assets=d.assets||[];loans=d.loans||[];budgets=d.budgets||{};recurring=d.recurring||[];stocks=d.stocks||[];funds=d.funds||[];trades=d.trades||[];
-    save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();saveTrades();alert('還原成功！');refreshTodayView();refreshRecurringList();
+    save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();saveTrades();alert('還原成功！');refreshTodayView();refreshRecurringList();if(typeof refreshBalance==='function')refreshBalance();
   }catch(err){alert('解析失敗：'+err.message);}};reader.readAsText(file);e.target.value='';}
 function clearAll(){if(!confirm('確定清除所有資料？無法復原！'))return;if(!confirm('再次確認？'))return;
-  records=[];assets=[];loans=[];budgets={};recurring=[];stocks=[];funds=[];trades=[];save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();saveTrades();alert('已清除');refreshTodayView();refreshRecurringList();}
+  records=[];assets=[];loans=[];budgets={};recurring=[];stocks=[];funds=[];trades=[];save();saveAssets();saveLoans();saveBudgets();saveRecurring();saveStocks();saveFunds();saveTrades();alert('已清除');refreshTodayView();refreshRecurringList();if(typeof refreshBalance==='function')refreshBalance();}
 
 // ===== Export =====
 function exportCSV(){
